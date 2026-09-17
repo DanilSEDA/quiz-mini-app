@@ -2,82 +2,246 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Quiz Mini App</title>
+    <!-- Telegram Web App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --accent-color: #6366f1;
+            --accent-hover: #4f46e5;
+            --correct-color: #10b981;
+            --wrong-color: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: var(--tg-theme-bg-color, #1a1a1a);
-            color: var(--tg-theme-text-color, #ffffff);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 75%);
+            color: var(--text-color);
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 420px;
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .score-badge {
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            color: #818cf8;
+        }
+
+        .question {
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-bottom: 24px;
+            min-height: 60px;
+            display: flex;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-        .card {
-            background: var(--tg-theme-secondary-bg-color, #2a2a2a);
-            padding: 20px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
             text-align: center;
         }
+
+        .options-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         .btn {
-            background: var(--tg-theme-button-color, #2481cc);
-            color: var(--tg-theme-button-text-color, #ffffff);
-            border: none;
-            padding: 12px;
-            margin: 8px 0;
-            width: 100%;
-            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            padding: 16px;
+            border-radius: 16px;
             font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            outline: none;
+            text-align: left;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn.correct {
+            background: var(--correct-color) !important;
+            border-color: var(--correct-color) !important;
+            color: #fff;
+            animation: pulse 0.4s ease-out;
+        }
+
+        .btn.wrong {
+            background: var(--wrong-color) !important;
+            border-color: var(--wrong-color) !important;
+            color: #fff;
+            animation: shake 0.4s ease-out;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+
+        /* Анимация смены вопроса */
+        .slide-out {
+            animation: slideOut 0.3s forwards ease-in;
+        }
+
+        .slide-in {
+            animation: slideIn 0.3s forwards ease-out;
+        }
+
+        @keyframes slideOut {
+            to { opacity: 0; transform: translateX(-30px); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
     </style>
 </head>
 <body>
-    <div class="card">
-        <h2 id="question">Загрузка вопроса...</h2>
-        <div id="options"></div>
+
+    <div class="container" id="quiz-card">
+        <div class="header">
+            <span id="progress">Вопрос 1/5</span>
+            <span class="score-badge" id="score">✨ 0 XP</span>
+        </div>
+        <div class="question" id="question">Загрузка...</div>
+        <div class="options-grid" id="options"></div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
+        tg.ready();
         tg.expand();
 
+        // База вопросов
         const questions = [
-            { q: "Какая структура работает по принципу FIFO?", opts: ["Стек", "Дерево", "Очередь", "Граф"], correct: 2 },
-            { q: "Какой артефакт используется для контроля версий?", opts: ["Docker", "Git", "Linux"], correct: 1 }
+            { q: "Какой язык программирования используется в школе Питон?", opts: ["Python", "JavaScript", "C++", "Java"], correct: 0 },
+            { q: "Какой инструмент используется для контроля версий?", opts: ["Docker", "Git", "Nginx", "Linux"], correct: 1 },
+            { q: "Что такое 'Bug' в веб-разработке?", opts: ["Фича", "Ошибка в коде", "Вирус", "База данных"], correct: 1 },
+            { q: "Какая структура данных работает по принципу FIFO?", opts: ["Стек", "Дерево", "Очередь", "Граф"], correct: 2 },
+            { q: "Где хранятся репозитории кода в облаке?", opts: ["GitHub", "VS Code", "Terminal", "Docker Hub"], correct: 0 }
         ];
 
         let currentIdx = 0;
+        let xp = 0;
+        let isAnswering = false;
+
+        const card = document.getElementById("quiz-card");
+        const questionEl = document.getElementById("question");
+        const optionsEl = document.getElementById("options");
+        const progressEl = document.getElementById("progress");
+        const scoreEl = document.getElementById("score");
 
         function renderQuestion() {
             const item = questions[currentIdx];
-            document.getElementById("question").innerText = item.q;
-            const container = document.getElementById("options");
-            container.innerHTML = "";
+            
+            progressEl.innerText = `Вопрос ${currentIdx + 1}/${questions.length}`;
+            questionEl.innerText = item.q;
+            optionsEl.innerHTML = "";
 
             item.opts.forEach((opt, idx) => {
                 const btn = document.createElement("button");
                 btn.className = "btn";
                 btn.innerText = opt;
-                btn.onclick = () => {
-                    if (idx === item.correct) {
-                        alert("Правильно! 🎉");
-                    } else {
-                        alert("Неверно! ❌");
-                    }
+                btn.onclick = () => checkAnswer(idx, item.correct, btn);
+                optionsEl.appendChild(btn);
+            });
+
+            card.classList.remove("slide-out");
+            card.classList.add("slide-in");
+            isAnswering = false;
+        }
+
+        function checkAnswer(selectedIdx, correctIdx, btn) {
+            if (isAnswering) return;
+            isAnswering = true;
+
+            const allButtons = optionsEl.querySelectorAll(".btn");
+
+            if (selectedIdx === correctIdx) {
+                btn.classList.add("correct");
+                xp += 50;
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+            } else {
+                btn.classList.add("wrong");
+                allButtons[correctIdx].classList.add("correct");
+                xp = Math.max(0, xp - 10);
+                if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("error");
+            }
+
+            scoreEl.innerText = `✨ ${xp} XP`;
+
+            setTimeout(() => {
+                card.classList.remove("slide-in");
+                card.classList.add("slide-out");
+
+                setTimeout(() => {
                     currentIdx = (currentIdx + 1) % questions.length;
                     renderQuestion();
-                };
-                container.appendChild(btn);
-            });
+                }, 300);
+            }, 1200);
         }
 
         renderQuestion();
