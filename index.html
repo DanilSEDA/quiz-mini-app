@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #1a1a1a);
+            color: var(--tg-theme-text-color, #ffffff);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: var(--tg-theme-secondary-bg-color, #2a2a2a);
+            padding: 20px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .btn {
+            background: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            border: none;
+            padding: 12px;
+            margin: 8px 0;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 id="question">Загрузка вопроса...</h2>
+        <div id="options"></div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const questions = [
+            { q: "Какая структура работает по принципу FIFO?", opts: ["Стек", "Дерево", "Очередь", "Граф"], correct: 2 },
+            { q: "Какой артефакт используется для контроля версий?", opts: ["Docker", "Git", "Linux"], correct: 1 }
+        ];
+
+        let currentIdx = 0;
+
+        function renderQuestion() {
+            const item = questions[currentIdx];
+            document.getElementById("question").innerText = item.q;
+            const container = document.getElementById("options");
+            container.innerHTML = "";
+
+            item.opts.forEach((opt, idx) => {
+                const btn = document.createElement("button");
+                btn.className = "btn";
+                btn.innerText = opt;
+                btn.onclick = () => {
+                    if (idx === item.correct) {
+                        alert("Правильно! 🎉");
+                    } else {
+                        alert("Неверно! ❌");
+                    }
+                    currentIdx = (currentIdx + 1) % questions.length;
+                    renderQuestion();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        renderQuestion();
+    </script>
+</body>
+</html>
